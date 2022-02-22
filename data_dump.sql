@@ -92,3 +92,13 @@ CREATE TABLE IF NOT EXISTS usvideos(
 	video_error_or_removed boolean,
 	description text
 );
+
+\copy cavideos from './data/CAvideos.csv' DELIMITER ',' CSV HEADER;
+
+\copy devideos from './data/DEvideos.csv' DELIMITER ',' CSV HEADER;
+
+\copy frvideos from './data/FRvideos.csv' DELIMITER ',' CSV HEADER;
+
+\copy invideos from './data/INvideos.csv' DELIMITER ',' CSV HEADER;
+
+\copy usvideos from './data/USvideos.csv' DELIMITER ',' CSV HEADER;
