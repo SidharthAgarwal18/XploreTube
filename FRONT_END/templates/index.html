@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Videos {% endblock %}</h1>
+    {% for video in videos %}
+        <div class='video'>
+            <h4>#{{ video[0] }}</h4>
+            <h3>{{ video[1] }}</h3>
+            <h4> by {{ video[2] }} </h4>
+            <i><p>(upload date: {{ video[3] }} )</p></i>
+            <p class='details'>{{ video[4] }}</p>
+            <i><p>(Views : {{video[5]}}, Likes : {{video[6]}}, Dislikes : {{video[7]}})</p></i>
+        </div>
+    {% endfor %}
+{% endblock %}

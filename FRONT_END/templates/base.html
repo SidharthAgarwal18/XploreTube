@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %} {% endblock %}- FlaskApp</title>
+    <style>
+        nav a {
+            color: #d64161;
+            font-size: 2.5em;
+            margin-left: 50px;
+            text-decoration: none;
+        }
+
+        .video {
+            padding: 15px;
+            margin: 7px;
+            background-color: #f7f4f4;
+        }
+
+        .details {
+            margin-left: 40px;
+            font-size: 15px;
+            background-color: #ece5e5;
+        }
+
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('index') }}">HOME</a>
+        <a href="#">WATCH</a>
+        <a href="#">CHANNEL</a>
+        <a href="#">USER_LOGIN</a>
+    </nav>
+    <hr>
+    <div class="content">
+        {% block content %} {% endblock %}
+    </div>
+</body>
+</html>
