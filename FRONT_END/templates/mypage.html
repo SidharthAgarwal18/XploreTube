@@ -1,34 +1,15 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>{% block title %} Account {% endblock %}</h1>
-    <form method="post">
-        <p> Current UserID : {{username}}</p>
-        <p>
-            <label for="username">Username</label>
-            <input type="text" name="username"
-                   placeholder="Enter UserID">
-            </input>
-        </p>
-
-        <p>
-            <label for="password">Password</label>
-            <input type="text" name="password"
-                   placeholder="Enter Password">
-            </input>
-        </p>
-        <button type="submit">Enter</button>
-        <p>{{account_message}}</p>
-    </form>
-    <h1> My Videos </h1>
-    <h3> most recent in country : {{country}} </h3>
+    <h1>{% block title %} {{title}} {% endblock %}</h1>
+    <h3> Current Username : {{username}} </h3>
     {% for video in videos %}
         <div class='video'>
             <h4>#{{ video[0] }}</h4>
             <form action={{url_for('query')}}>
                 <input type=hidden name="videoid" value={{ video[0] }}>
                 <input type=hidden name="channel_title" value={{ video[2] }}>
-                <input type=hidden name="page_type" value = "1">
+                <input type=hidden name="page_type" value = "3">
                 <input type="submit" name="selected_event" value="Watch">
                 <input type="submit" name="selected_event" value="Like">
                 <input type="submit" name="selected_event" value="Dislike">

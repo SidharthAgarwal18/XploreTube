@@ -18,10 +18,9 @@ tag = ""
 
 suffix  = 'videos'
 gen_attr = 'video_id,title,channel_title,publish_time,description,views,likes,dislikes,tags'
+small_attr = 'publish_time,description,views,likes,dislikes,tags'
 
 curr_user = "guest"
-videos_liked = []
-videos_disliked = []
 
 def get_db_connection():
     conn = psycopg2.connect(host='localhost',
@@ -33,8 +32,8 @@ def get_db_connection():
 def createTableforOnce():
     conn = get_db_connection()
     cur = conn.cursor()
-
-    cur.execute("CREATE TABLE IF NOT EXISTS history(user text NOT NULL,video_id NOT NULL,watched bigint,liked BOOLEAN,disliked BOOLEAN);")
+    subquery = "((SELECT DISTINCT ON(channel_title)* FROM cavideos) UNION (SELECT DISTINCT ON(channel_title) * FROM frvideos) UNION (SELECT DISTINCT ON(channel_title)* FROM invideos) UNION (SELECT DISTINCT ON(channel_title)* FROM devideos) UNION (SELECT DISTINCT ON(channel_title)* FROM usvideos))"
+    cur.execute("CREATE TABLE IF NOT EXISTS history AS (SELECT DISTINCT ON (channel_title) channel_title as curr_user,video_id,channel_title,1 as watched,TRUE as liked,FALSE as disliked FROM "+subquery+" AS TEMP);")
 
     conn.commit()
     cur.close()
@@ -84,7 +83,7 @@ def returnOrderCountry(in_country,in_order):
     elif len(order)==0:
         order = "video_id DESC"
 
-    app.logger.info(order)
+    #app.logger.info(order)
 
     return country,order
 
@@ -155,9 +154,10 @@ def index():
         videoname = request.form["videoname"]
         channelname = request.form["channelname"]
         tag = request.form["tag"]
-        
-    search_string = createSearch(videoname,channelname,tag)
-    app.logger.info(search_string)
+
+    search_string = createSearch(videoname,channelname,tag)    
+    
+    #app.logger.info(search_string)
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -175,39 +175,54 @@ def index():
             this_videoname = videoname,this_channelname=channelname,this_tag=tag)
 
 
-
 @app.route('/query')
 def query():
     conn = get_db_connection()
     cur = conn.cursor()
 
+    temp_videoId = request.args.get("videoid")
     action = request.args.get("selected_event")
     videoId = "'%"+request.args.get("videoid") + "%'"
+    channel_title = request.args.get("channel_title")
+    page_type = request.args.get("page_type")
+
+    cur.execute("SELECT liked,disliked FROM history WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
+    results = cur.fetchall()
+
+    if len(results)==0:
+        cur.execute(f"INSERT INTO history VALUES('{curr_user}','{temp_videoId}','{channel_title}',0,FALSE,FALSE) ON CONFLICT DO NOTHING")
+        results = [(False,False)]
+
+    #app.logger.info("\n")
+    #app.logger.info(results)
+    #app.logger.info("\n")
 
     update = 0
     if action=='Watch':
         action = "views"
         update = 1
+        cur.execute("UPDATE history SET watched = watched + 1 WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
         
-    elif action=='Like' and videoId not in videos_disliked:
+    elif action=='Like' and results[0][1]==False:
         action = "likes"
         update = 1
 
-        if videoId not in videos_liked:
-            videos_liked.append(videoId)
+        if results[0][0]==False:
+            app.logger.info("Here")
+            cur.execute("UPDATE history SET liked = TRUE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
         else:
             update = -1
-            videos_liked.remove(videoId)
+            cur.execute("UPDATE history SET liked = FALSE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
 
-    elif videoId not in videos_liked:
+    elif action=='Dislike' and results[0][0]==False:
         action = 'dislikes'
         update = 1
 
-        if videoId not in videos_disliked:
-            videos_disliked.append(videoId)
+        if results[0][1]==False:
+            cur.execute("UPDATE history SET disliked = TRUE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
         else:
             update = -1
-            videos_disliked.remove(videoId)
+            cur.execute("UPDATE history SET disliked = FALSE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
 
     if update!=0:
         cur.execute('UPDATE '+country+suffix+' SET '+action+'='+action+'+ '+str(update)+' WHERE video_id LIKE '+videoId+';')
@@ -216,7 +231,16 @@ def query():
     cur.close()
     conn.close()
 
-    return redirect(url_for('index'))
+    app.logger.info("\npage_type:"+str(page_type))
+
+    if page_type=="0":
+        return redirect(url_for('index'))
+    elif page_type=="1":
+        return redirect(url_for('login'))
+    elif page_type=="2":
+        return redirect(url_for('history'))
+    else:
+        return redirect(url_for('mypage'))
     
 @app.route('/login',methods=('GET', 'POST'))
 def login():
@@ -284,8 +308,46 @@ def upload():
 
     return render_template('upload.html',username=curr_user,country=country)
 
+@app.route('/history')
+def history():
+    global country
+    global curr_user
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(f"SELECT history.video_id,title,history.channel_title,{small_attr},watched,liked,disliked FROM history,{country+suffix} WHERE (history.video_id LIKE {country+suffix}.video_id AND history.curr_user LIKE '%{curr_user}%') ORDER BY watched,publish_time DESC;")
+    videos = cur.fetchall()
+
+    app.logger.info(videos)
+    cur.close()
+    conn.close()
+
+    return render_template('myhistory.html',videos=videos,username=curr_user,title="Your History",personal="True")
+
+@app.route('/mypage')
+def mypage():
+    global country
+    global curr_user
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(f"SELECT DISTINCT temp.video_id,title,temp.channel_title,{small_attr} FROM history,{country+suffix} as temp\
+                WHERE (history.curr_user LIKE '%{curr_user}%' AND history.channel_title LIKE temp.channel_title AND temp.channel_title NOT LIKE '%{curr_user}%') \
+                ORDER BY publish_time DESC,views DESC,likes DESC LIMIT 50;")
+    videos = cur.fetchall()
+
+    app.logger.info(videos)
+    cur.close()
+    conn.close()
+
+    return render_template('mypage.html',videos=videos,username=curr_user,title="Your Recommendations",personal="False")
 
 
 if __name__ == '__main__':
+    this_time = time.time()
+    createTableforOnce();
+    print(time.time()-this_time)
     app.debug = True
     app.run()

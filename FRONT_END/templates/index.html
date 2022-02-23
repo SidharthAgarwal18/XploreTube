@@ -2,7 +2,6 @@
 
 {% block content %}
     <h1>{% block title %} XploreTube {% endblock %}</h1>
-    <form method="post",action = {{url_for('index')}}>
     <form action={{url_for('index')}}>
         <i><p> Current Location : {{country}}, Choose : 
         <input type="submit" name="country" value="Canada">
@@ -18,6 +17,7 @@
         <input type="submit" name="filter" value="Date of upload">
         </p></i>
     </form>
+    <form method="post",action = {{url_for('index')}}>
         <p>
             <label for="videoname">Video Name </label>
             <input type="text" name="videoname"
@@ -39,6 +39,8 @@
             <h4>#{{ video[0] }}</h4>
             <form action={{url_for('query')}}>
                 <input type=hidden name="videoid" value={{ video[0] }}>
+                <input type=hidden name="channel_title" value={{ video[2] }}>
+                <input type=hidden name="page_type" value = "0">
                 <input type="submit" name="selected_event" value="Watch">
                 <input type="submit" name="selected_event" value="Like">
                 <input type="submit" name="selected_event" value="Dislike">
