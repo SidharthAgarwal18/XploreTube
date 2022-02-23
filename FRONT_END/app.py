@@ -7,13 +7,17 @@ logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
-country = 'in'          #default country is india..
-order = 'video_id DESC,'
+
+country = 'in'          
+order = 'video_id DESC'
+videoname = ""
+channelname = ""
+tag = ""
+
 suffix  = 'videos'
-gen_attr = 'video_id,title,channel_title,publish_time,description,views,likes,dislikes'
+gen_attr = 'video_id,title,channel_title,publish_time,description,views,likes,dislikes,tags'
 
 user = "guest"
-videos_watched = []
 videos_liked = []
 videos_disliked = []
 
@@ -71,15 +75,77 @@ def returnOrderCountry(in_country,in_order):
 
     return country,order
 
+
+
+def createSearch(videoname,channelname,tag):
+    if videoname==None and channelname==None and tag==None:
+        return ""
+    search_string = " WHERE "
+
+    if videoname:
+        videoname = '\'%' + videoname + '%\''
+        search_string += "title LIKE "+videoname + " AND "
+
+    if channelname:
+        channelname = '\'%' + channelname + '%\''
+        search_string += "channel_title LIKE "+channelname + " AND "
+
+    if tag:
+        tag = '\'%' + tag + '%\''
+        search_string += "tags LIKE "+tag + " AND "
+
+    search_string = search_string[0:len(search_string)-4]
+    return search_string
+
+
 @app.route('/')
 def base():
+    global country
+    global order
+    global videoname
+    global channelname
+    global tag
+
+    country = 'in'          
+    order = 'video_id DESC'
+    videoname = ""
+    channelname = ""
+    tag = ""
+
+    app.logger.info("REACHED HOME")
+    app.logger.info(country+','+order)
+
     return redirect(url_for('index'))
 
-@app.route('/index')
+def complete_country(country):
+
+    if country=="ca":
+        return "Canada"
+    elif country=="de":
+        return "Denmark"
+    elif country=="fr":
+        return "France"
+    elif country=="in":
+        return "India"
+    else:
+        return "USA"
+
+@app.route('/index',methods=('GET', 'POST'))
 def index():
 
-    global order
     global country
+    global order
+    global videoname
+    global channelname
+    global tag
+
+    if request.method =='POST':
+        videoname = request.form["videoname"]
+        channelname = request.form["channelname"]
+        tag = request.form["tag"]
+        
+    search_string = createSearch(videoname,channelname,tag)
+    app.logger.info(search_string)
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -89,11 +155,13 @@ def index():
 
     country,order = returnOrderCountry(in_country,in_order)
 
-    cur.execute('SELECT '+ gen_attr + ' FROM ' + country+suffix+' ORDER BY '+order+' LIMIT 50;')
+    cur.execute('SELECT '+ gen_attr + ' FROM ' + country+suffix+search_string+' ORDER BY '+order+' LIMIT 50;')
     videos = cur.fetchall()
     cur.close()
     conn.close()
-    return render_template('index.html', videos=videos)
+    return render_template('index.html', videos=videos,country=complete_country(country),
+            this_videoname = videoname,this_channelname=channelname,this_tag=tag)
+
 
 
 @app.route('/query')
@@ -108,12 +176,6 @@ def query():
     if action=='Watch':
         action = "views"
         update = 1
-
-        if videoId not in videos_watched:
-            videos_watched.append(videoId)
-        else:
-            update = -1
-            videos_watched.remove(videoId)
         
     elif action=='Like' and videoId not in videos_disliked:
         action = "likes"
@@ -138,15 +200,17 @@ def query():
     if update!=0:
         cur.execute('UPDATE '+country+suffix+' SET '+action+'='+action+'+ '+str(update)+' WHERE video_id LIKE '+videoId+';')
     
-    cur.execute('SELECT '+ gen_attr + ' FROM ' + country+suffix+' WHERE video_id LIKE '+videoId+' ORDER BY '+order+' LIMIT 50;')
-    videos = cur.fetchall()
-    
     conn.commit()
     cur.close()
     conn.close()
 
-    return render_template('index.html', videos=videos)
+    return redirect(url_for('index'))
     
+@app.route('/login',methods=('GET', 'POST'))
+def login():
+    pass
+
+
 
 if __name__ == '__main__':
     app.debug = True
