@@ -3,6 +3,21 @@
 {% block content %}
     <h1>{% block title %} XploreTube {% endblock %}</h1>
     <form method="post",action = {{url_for('index')}}>
+    <form action={{url_for('index')}}>
+        <i><p> Current Location : {{country}}, Choose : 
+        <input type="submit" name="country" value="Canada">
+        <input type="submit" name="country" value="Denmark">
+        <input type="submit" name="country" value="France">
+        <input type="submit" name="country" value="India">
+        <input type="submit" name="country" value="USA">
+        </p></i>
+        <i><p> Filter :
+        <input type="submit" name="filter" value="Most Viewed">
+        <input type="submit" name="filter" value="Most Liked">
+        <input type="submit" name="filter" value="Most Comments">
+        <input type="submit" name="filter" value="Date of upload">
+        </p></i>
+    </form>
         <p>
             <label for="videoname">Video Name </label>
             <input type="text" name="videoname"
@@ -18,21 +33,6 @@
             </input>
             <button type="submit">Submit</button>
         </p>
-    </form>
-    <form action={{url_for('index')}}>
-        <i><p> Current Location : {{country}}, Choose : 
-        <input type="submit" name="country" value="Canada">
-        <input type="submit" name="country" value="Denmark">
-        <input type="submit" name="country" value="France">
-        <input type="submit" name="country" value="India">
-        <input type="submit" name="country" value="USA">
-        </p></i>
-        <i><p> Filter :
-        <input type="submit" name="filter" value="Most Viewed">
-        <input type="submit" name="filter" value="Most Liked">
-        <input type="submit" name="filter" value="Most Comments">
-        <input type="submit" name="filter" value="Date of upload">
-        </p></i>
     </form>
     {% for video in videos %}
         <div class='video'>

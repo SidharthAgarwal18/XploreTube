@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>{% block title %} Upload {% endblock %}</h1>
+    <form method="post">
+        <p> Current UserID/ChannelID : {{username}}</p>
+        <p> Default Country: {{country}}</p>
+        <p>
+            <label for="country">Country</label>
+            <input type="text" name="country"
+                   placeholder="Canada|France|Denmark|India|USA">
+            </input>
+        </p>
+
+        <p>
+            <label for="videoname">Title</label>
+            <input type="text" name="videoname"
+                   placeholder="Enter Title">
+            </input>
+        </p>
+        <p>
+            <label for="tags">Tags</label>
+            <br>
+            <textarea name="tags"
+                  placeholder="Enter Tags"
+                  rows="4"
+                  cols="60"
+                  ></textarea>
+        </p>
+        <p>
+            <label for="description">Description</label>
+            <br>
+            <textarea name="description"
+                  placeholder="Enter Description"
+                  rows="8"
+                  cols="60"
+                  ></textarea>
+        </p>        
+
+        <button type="submit">Enter</button>
+        <p>{{account_message}}</p>
+    </form>
+{% endblock %}

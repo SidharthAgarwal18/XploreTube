@@ -2,6 +2,8 @@ import psycopg2
 from flask import Flask, render_template, request, url_for, redirect
 import sys
 import logging
+import time
+import datetime
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -17,7 +19,7 @@ tag = ""
 suffix  = 'videos'
 gen_attr = 'video_id,title,channel_title,publish_time,description,views,likes,dislikes,tags'
 
-user = "guest"
+curr_user = "guest"
 videos_liked = []
 videos_disliked = []
 
@@ -27,6 +29,17 @@ def get_db_connection():
                             user='postgres',
                             password='12345')
     return conn
+
+def createTableforOnce():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("CREATE TABLE IF NOT EXISTS history(user text NOT NULL,video_id NOT NULL,watched bigint,liked BOOLEAN,disliked BOOLEAN);")
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
 
 def returnOrderCountry(in_country,in_order):
     global order
@@ -106,7 +119,6 @@ def base():
     global channelname
     global tag
 
-    country = 'in'          
     order = 'video_id DESC'
     videoname = ""
     channelname = ""
@@ -208,7 +220,69 @@ def query():
     
 @app.route('/login',methods=('GET', 'POST'))
 def login():
-    pass
+    global curr_user
+    global country
+
+    account_message = ""
+
+    if request.method =='POST':
+        in_user = request.form["username"]
+        in_pass = request.form["password"]
+
+        if(in_user!=in_pass and len(in_user)>0):
+            account_message = "Invalid Username/Password"
+        else:
+            account_message = "Account successfully switched to : " + in_user
+            curr_user = in_user
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute('SELECT '+ gen_attr + ' FROM ' + country+suffix+' WHERE channel_title LIKE \'%'+curr_user+'%\' ORDER BY publish_time DESC;')
+    videos = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template('login.html',username = curr_user,account_message=account_message,videos=videos,country=complete_country(country))
+
+
+@app.route('/upload',methods=('GET', 'POST'))
+def upload():
+    global curr_user
+    global country
+
+    if request.method =='POST':
+        up_country = request.form["country"]
+        up_title = request.form["videoname"]
+        up_tags = request.form["tags"]
+        up_descrip = request.form["description"]
+        up_videoID = '!'+str(time.time())
+        up_time = str(datetime.datetime.now())
+    
+        if up_country=="Canada":
+            up_country = "ca"
+        elif up_country=="Denmark":
+            up_country = "de"
+        elif up_country=="France":
+            up_country = "fr"
+        elif up_country=="India":
+            up_country = "in"
+        elif up_country=="USA":
+            up_country = "us"
+        else:
+            up_country = country
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(f"INSERT INTO {up_country+suffix} VALUES('{up_videoID}','NULL','{up_title}','{curr_user}',NULL,'{up_time}','{up_tags}',0,0,0,0,'NULL',FALSE,FALSE,FALSE,'{up_descrip}') ON CONFLICT DO NOTHING")
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+
+    return render_template('upload.html',username=curr_user,country=country)
 
 
 

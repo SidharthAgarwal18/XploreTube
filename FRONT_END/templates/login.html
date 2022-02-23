@@ -1,20 +1,44 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>{% block title %} User {% endblock %}</h1>
+    <h1>{% block title %} Account {% endblock %}</h1>
     <form method="post">
+        <p> Current UserID : {{username}}</p>
         <p>
-            <label for="title">Title</label>
-            <input type="text" name="title"
-                   placeholder="Book title">
+            <label for="username">Username</label>
+            <input type="text" name="username"
+                   placeholder="Enter UserID">
             </input>
         </p>
 
         <p>
-            <label for="author">Author</label>
-            <input type="text" name="author"
-                   placeholder="Book author">
+            <label for="password">Password</label>
+            <input type="text" name="password"
+                   placeholder="Enter Password">
             </input>
         </p>
+        <button type="submit">Enter</button>
+        <p>{{account_message}}</p>
     </form>
+    <h1> My Videos </h1>
+    <h3> most recent in country : {{country}} </h3>
+    {% for video in videos %}
+        <div class='video'>
+            <h4>#{{ video[0] }}</h4>
+            <form action={{url_for('query')}}>
+                <input type=hidden name="videoid" value={{ video[0] }}>
+                <input type="submit" name="selected_event" value="Watch">
+                <input type="submit" name="selected_event" value="Like">
+                <input type="submit" name="selected_event" value="Dislike">
+            </form>
+            <h3>{{ video[1] }}</h3>
+            <h4> by {{ video[2] }} </h4>
+            <i><p>(upload date: {{ video[3] }} )</p></i>
+            <h5> Description </h5>
+            <p class='details'>{{ video[4] }}</p>
+            <h5> Tags </h5>
+            <p class='details'>{{ video[8] }}</p>
+            <i><p>(Views : {{video[5]}}, Likes : {{video[6]}}, Dislikes : {{video[7]}})</p></i>
+        </div>
+    {% endfor %}
 {% endblock %}
