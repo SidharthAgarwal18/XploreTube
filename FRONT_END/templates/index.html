@@ -1,10 +1,31 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    <h1>{% block title %} Videos {% endblock %}</h1>
+    <h1>{% block title %} XploreTube {% endblock %}</h1>
+    <form action={{url_for('index')}}>
+        <i><p> Location : 
+        <input type="submit" name="country" value="Canada">
+        <input type="submit" name="country" value="Denmark">
+        <input type="submit" name="country" value="France">
+        <input type="submit" name="country" value="India">
+        <input type="submit" name="country" value="USA">
+        </p></i>
+        <i><p> Filter :
+        <input type="submit" name="filter" value="Most Viewed">
+        <input type="submit" name="filter" value="Most Liked">
+        <input type="submit" name="filter" value="Most Comments">
+        <input type="submit" name="filter" value="Date of upload">
+        </p></i>
+    </form>
     {% for video in videos %}
         <div class='video'>
             <h4>#{{ video[0] }}</h4>
+            <form action={{url_for('query')}}>
+                <input type=hidden name="videoid" value={{ video[0] }}>
+                <input type="submit" name="selected_event" value="Watch">
+                <input type="submit" name="selected_event" value="Like">
+                <input type="submit" name="selected_event" value="Dislike">
+            </form>
             <h3>{{ video[1] }}</h3>
             <h4> by {{ video[2] }} </h4>
             <i><p>(upload date: {{ video[3] }} )</p></i>
