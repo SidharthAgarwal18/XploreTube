@@ -35,11 +35,11 @@
         </p>
     </form>
     {% for video in videos %}
-        <div class='video'>
+        <div class='video' type = string>
             <h4>#{{ video[0] }}</h4>
             <form action={{url_for('query')}}>
-                <input type=hidden name="videoid" value={{ video[0] }}>
-                <input type=hidden name="channel_title" value={{ video[2] }}>
+                <input type=hidden name="videoid" value = {{ video[0] }}>
+                <input type=hidden name="channel_title" value= "{{ video[2] }}">
                 <input type=hidden name="page_type" value = "0">
                 <input type="submit" name="selected_event" value="Watch">
                 <input type="submit" name="selected_event" value="Like">

@@ -183,10 +183,10 @@ def query():
     temp_videoId = request.args.get("videoid")
     action = request.args.get("selected_event")
     videoId = "'%"+request.args.get("videoid") + "%'"
-    channel_title = request.args.get("channel_title")
+    channel_title = str(request.args.get("channel_title"))
     page_type = request.args.get("page_type")
 
-    cur.execute("SELECT liked,disliked FROM history WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
+    cur.execute("SELECT liked,disliked FROM history WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
     results = cur.fetchall()
 
     if len(results)==0:
@@ -196,42 +196,47 @@ def query():
     #app.logger.info("\n")
     #app.logger.info(results)
     #app.logger.info("\n")
-
+    app.logger.info("query: "+channel_title+", user: "+curr_user)
     update = 0
     if action=='Watch':
         action = "views"
         update = 1
-        cur.execute("UPDATE history SET watched = watched + 1 WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
+        cur.execute("UPDATE history SET watched = watched + 1 WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
         
     elif action=='Like' and results[0][1]==False:
         action = "likes"
         update = 1
 
         if results[0][0]==False:
-            app.logger.info("Here")
-            cur.execute("UPDATE history SET liked = TRUE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
+            cur.execute("UPDATE history SET liked = TRUE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
         else:
             update = -1
-            cur.execute("UPDATE history SET liked = FALSE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
+            cur.execute("UPDATE history SET liked = FALSE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
 
     elif action=='Dislike' and results[0][0]==False:
         action = 'dislikes'
         update = 1
 
         if results[0][1]==False:
-            cur.execute("UPDATE history SET disliked = TRUE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
+            cur.execute("UPDATE history SET disliked = TRUE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
         else:
             update = -1
-            cur.execute("UPDATE history SET disliked = FALSE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE "+videoId+";")
+            cur.execute("UPDATE history SET disliked = FALSE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
 
     if update!=0:
         cur.execute('UPDATE '+country+suffix+' SET '+action+'='+action+'+ '+str(update)+' WHERE video_id LIKE '+videoId+';')
     
+    cur.execute("SELECT * FROM history WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
+    results = cur.fetchall()
+    app.logger.info("\n")
+    app.logger.info(results)
+    app.logger.info("\n")
+
     conn.commit()
     cur.close()
     conn.close()
 
-    app.logger.info("\npage_type:"+str(page_type))
+    #app.logger.info("\npage_type:"+str(page_type))
 
     if page_type=="0":
         return redirect(url_for('index'))
@@ -262,7 +267,7 @@ def login():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute('SELECT '+ gen_attr + ' FROM ' + country+suffix+' WHERE channel_title LIKE \'%'+curr_user+'%\' ORDER BY publish_time DESC;')
+    cur.execute('SELECT '+ gen_attr + ' FROM ' + country+suffix+' WHERE channel_title LIKE \''+curr_user+'\' ORDER BY publish_time DESC;')
     videos = cur.fetchall()
     cur.close()
     conn.close()
@@ -299,7 +304,8 @@ def upload():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        cur.execute(f"INSERT INTO {up_country+suffix} VALUES('{up_videoID}','NULL','{up_title}','{curr_user}',NULL,'{up_time}','{up_tags}',0,0,0,0,'NULL',FALSE,FALSE,FALSE,'{up_descrip}') ON CONFLICT DO NOTHING")
+        attributes = "(video_id,trending_date,title,channel_title,category_id,publish_time,tags,views,likes,dislikes,comment_count,thumbnail_link,comments_disabled,ratings_disabled,video_error_or_removed,description)"
+        cur.execute(f"INSERT INTO {up_country+suffix}{attributes} VALUES('{up_videoID}','NULL','{up_title}','{curr_user}',NULL,'{up_time}','{up_tags}',0,0,0,0,'NULL',FALSE,FALSE,FALSE,'{up_descrip}') ON CONFLICT DO NOTHING")
 
         conn.commit()
         cur.close()
@@ -316,10 +322,10 @@ def history():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute(f"SELECT history.video_id,title,history.channel_title,{small_attr},watched,liked,disliked FROM history,{country+suffix} WHERE (history.video_id LIKE {country+suffix}.video_id AND history.curr_user LIKE '%{curr_user}%') ORDER BY watched,publish_time DESC;")
+    cur.execute(f"SELECT history.video_id,title,{country+suffix}.channel_title,{small_attr},watched,liked,disliked FROM history,{country+suffix} WHERE (history.video_id LIKE {country+suffix}.video_id AND history.curr_user LIKE '{curr_user}') ORDER BY watched,publish_time DESC;")
     videos = cur.fetchall()
 
-    app.logger.info(videos)
+    #app.logger.info(videos)
     cur.close()
     conn.close()
 
@@ -333,12 +339,14 @@ def mypage():
     conn = get_db_connection()
     cur = conn.cursor()
 
+    app.logger.info("my_page : "+country)
+
     cur.execute(f"SELECT DISTINCT temp.video_id,title,temp.channel_title,{small_attr} FROM history,{country+suffix} as temp\
                 WHERE (history.curr_user LIKE '%{curr_user}%' AND history.channel_title LIKE temp.channel_title AND temp.channel_title NOT LIKE '%{curr_user}%') \
                 ORDER BY publish_time DESC,views DESC,likes DESC LIMIT 50;")
     videos = cur.fetchall()
 
-    app.logger.info(videos)
+    #app.logger.info(videos)
     cur.close()
     conn.close()
 
