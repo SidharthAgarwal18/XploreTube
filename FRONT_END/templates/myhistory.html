@@ -24,7 +24,12 @@
             <input type="text" name="comment" placeholder="Comment here: "> <input type="submit" name="selected_event" value="Comment">
             </form> 
             <h5>(Watched Times : {{video[9]}}, Liked : {{video[10]}}, Disliked : {{video[11]}})</h5>
-            <p> Last Comment: {{ video[12] }}</p>
+            <p>
+            <h5> Comments Added: </h5>            
+            {% for comment in video[12]%}
+                 * {{comment}} <br>
+            {% endfor %}
+            </p>
         </div>
     {% endfor %}
 {% endblock %}
