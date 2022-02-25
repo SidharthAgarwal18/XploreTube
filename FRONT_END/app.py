@@ -34,7 +34,7 @@ def createTableforOnce():
     conn = get_db_connection()
     cur = conn.cursor()
     subquery = "((SELECT DISTINCT ON(channel_title)* FROM cavideos) UNION (SELECT DISTINCT ON(channel_title) * FROM frvideos) UNION (SELECT DISTINCT ON(channel_title)* FROM invideos) UNION (SELECT DISTINCT ON(channel_title)* FROM devideos) UNION (SELECT DISTINCT ON(channel_title)* FROM usvideos))"
-    cur.execute("CREATE TABLE IF NOT EXISTS history AS (SELECT DISTINCT ON (channel_title) channel_title as curr_user,video_id,channel_title,1 as watched,TRUE as liked,FALSE as disliked FROM "+subquery+" AS TEMP);")
+    cur.execute("CREATE TABLE IF NOT EXISTS history AS (SELECT DISTINCT ON (channel_title) channel_title as curr_user,video_id,channel_title,1 as watched,TRUE as liked,FALSE as disliked,'' as comments FROM "+subquery+" AS TEMP);")
 
     conn.commit()
     cur.close()
@@ -186,6 +186,7 @@ def query():
     videoId = "'%"+request.args.get("videoid") + "%'"
     channel_title = str(request.args.get("channel_title"))
     page_type = request.args.get("page_type")
+    comment = request.args.get("comment")
 
     cur.execute("SELECT liked,disliked FROM history WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
     results = cur.fetchall()
@@ -199,6 +200,7 @@ def query():
     #app.logger.info("\n")
     #app.logger.info("query: "+channel_title+", user: "+curr_user)
     update = 0
+
     if action=='Watch':
         action = "views"
         update = 1
@@ -223,6 +225,12 @@ def query():
         else:
             update = -1
             cur.execute("UPDATE history SET disliked = FALSE WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
+    elif action=='Comment' and comment!=None:
+        cur.execute("UPDATE history SET comments = '"+comment+"'::text WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
+        cur.execute('UPDATE '+country+suffix+' SET comment_count = comment_count + 1 WHERE video_id LIKE '+videoId+';')
+        app.logger.info(action)
+    
+    app.logger.info("\nComment: "+comment)    
 
     if update!=0:
         cur.execute('UPDATE '+country+suffix+' SET '+action+'='+action+'+ '+str(update)+' WHERE video_id LIKE '+videoId+';')
@@ -323,7 +331,7 @@ def history():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute(f"SELECT history.video_id,title,{country+suffix}.channel_title,{small_attr},watched,liked,disliked FROM history,{country+suffix} WHERE (history.video_id LIKE {country+suffix}.video_id AND history.curr_user LIKE '{curr_user}') ORDER BY watched,publish_time DESC;")
+    cur.execute(f"SELECT history.video_id,title,{country+suffix}.channel_title,{small_attr},watched,liked,disliked,comments FROM history,{country+suffix} WHERE (history.video_id LIKE {country+suffix}.video_id AND history.curr_user LIKE '{curr_user}') ORDER BY watched,publish_time DESC;")
     videos = cur.fetchall()
 
     #app.logger.info(videos)
@@ -366,5 +374,5 @@ if __name__ == '__main__':
     #this_time = time.time()
     createTableforOnce();
     #print(time.time()-this_time)
-    
+
     app.run(port = 5023,debug = True)
