@@ -15,6 +15,7 @@ order = 'video_id DESC'
 videoname = ""
 channelname = ""
 tag = ""
+recommend_depth = 3
 
 suffix  = 'videos'
 gen_attr = 'video_id,title,channel_title,publish_time,description,views,likes,dislikes,tags'
@@ -123,8 +124,8 @@ def base():
     channelname = ""
     tag = ""
 
-    app.logger.info("REACHED HOME")
-    app.logger.info(country+','+order)
+    #app.logger.info("REACHED HOME")
+    #app.logger.info(country+','+order)
 
     return redirect(url_for('index'))
 
@@ -196,7 +197,7 @@ def query():
     #app.logger.info("\n")
     #app.logger.info(results)
     #app.logger.info("\n")
-    app.logger.info("query: "+channel_title+", user: "+curr_user)
+    #app.logger.info("query: "+channel_title+", user: "+curr_user)
     update = 0
     if action=='Watch':
         action = "views"
@@ -228,9 +229,9 @@ def query():
     
     cur.execute("SELECT * FROM history WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
     results = cur.fetchall()
-    app.logger.info("\n")
-    app.logger.info(results)
-    app.logger.info("\n")
+    #app.logger.info("\n")
+    #app.logger.info(results)
+    #app.logger.info("\n")
 
     conn.commit()
     cur.close()
@@ -335,15 +336,22 @@ def history():
 def mypage():
     global country
     global curr_user
+    global recommend_depth
 
     conn = get_db_connection()
     cur = conn.cursor()
 
-    app.logger.info("my_page : "+country)
+    #app.logger.info("my_page : "+country)
+    subquery = f"WITH RECURSIVE temp AS( \
+                    SELECT history.curr_user,history.channel_title,1 as depth FROM history WHERE (history.curr_user LIKE '%{curr_user}%') \
+                    UNION SELECT DISTINCT temp.curr_user,history.channel_title,depth+1 FROM history,temp \
+                    WHERE (depth<{recommend_depth} AND temp.channel_title = history.curr_user)) \
+                SELECT DISTINCT video_id,title,somevideos.channel_title,{small_attr} FROM temp,{country+suffix} as somevideos \
+                WHERE (temp.curr_user LIKE '%{curr_user}%') AND (temp.channel_title = somevideos.channel_title) \
+                AND (somevideos.video_id NOT IN (SELECT video_id FROM history as h1 WHERE (h1.channel_title LIKE '%{curr_user}%'))) \
+                ORDER BY publish_time DESC,views DESC,likes DESC LIMIT 100;"
 
-    cur.execute(f"SELECT DISTINCT temp.video_id,title,temp.channel_title,{small_attr} FROM history,{country+suffix} as temp\
-                WHERE (history.curr_user LIKE '%{curr_user}%' AND history.channel_title LIKE temp.channel_title AND temp.channel_title NOT LIKE '%{curr_user}%') \
-                ORDER BY publish_time DESC,views DESC,likes DESC LIMIT 50;")
+    cur.execute(subquery)
     videos = cur.fetchall()
 
     #app.logger.info(videos)
@@ -354,8 +362,9 @@ def mypage():
 
 
 if __name__ == '__main__':
-    this_time = time.time()
+
+    #this_time = time.time()
     createTableforOnce();
-    print(time.time()-this_time)
-    app.debug = True
-    app.run()
+    #print(time.time()-this_time)
+    
+    app.run(port = 5023,debug = True)
