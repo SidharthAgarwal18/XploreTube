@@ -35,6 +35,7 @@ def createTableforOnce():
     cur = conn.cursor()
     subquery = "((SELECT DISTINCT ON(channel_title)* FROM cavideos) UNION (SELECT DISTINCT ON(channel_title) * FROM frvideos) UNION (SELECT DISTINCT ON(channel_title)* FROM invideos) UNION (SELECT DISTINCT ON(channel_title)* FROM devideos) UNION (SELECT DISTINCT ON(channel_title)* FROM usvideos))"
     cur.execute("CREATE TABLE IF NOT EXISTS history AS (SELECT DISTINCT ON (channel_title) channel_title as curr_user,video_id,channel_title,1 as watched,TRUE as liked,FALSE as disliked,ARRAY[]::text[] as comments,publish_time as times_stamp FROM "+subquery+" AS TEMP);")
+    cur.execute("CREATE INDEX IF NOT EXISTS his_index ON history(curr_user,video_id)")
 
     conn.commit()
     cur.close()
