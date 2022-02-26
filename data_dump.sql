@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS cavideos(
 	comments_disabled boolean,
 	ratings_disabled boolean,
 	video_error_or_removed boolean,
-	description text
+	description text,
+	comments text[] DEFAULT ARRAY[]::text[]
 );
 
 CREATE TABLE IF NOT EXISTS devideos(
@@ -35,7 +36,8 @@ CREATE TABLE IF NOT EXISTS devideos(
 	comments_disabled boolean,
 	ratings_disabled boolean,
 	video_error_or_removed boolean,
-	description text
+	description text,
+	comments text[] DEFAULT ARRAY[]::text[]
 );
 
 CREATE TABLE IF NOT EXISTS frvideos(
@@ -55,7 +57,8 @@ CREATE TABLE IF NOT EXISTS frvideos(
 	comments_disabled boolean,
 	ratings_disabled boolean,
 	video_error_or_removed boolean,
-	description text
+	description text,
+	comments text[] DEFAULT ARRAY[]::text[]
 );
 
 CREATE TABLE IF NOT EXISTS invideos(
@@ -75,7 +78,8 @@ CREATE TABLE IF NOT EXISTS invideos(
 	comments_disabled boolean,
 	ratings_disabled boolean,
 	video_error_or_removed boolean,
-	description text
+	description text,
+	comments text[] DEFAULT ARRAY[]::text[]
 );
 
 CREATE TABLE IF NOT EXISTS usvideos(
@@ -95,7 +99,8 @@ CREATE TABLE IF NOT EXISTS usvideos(
 	comments_disabled boolean,
 	ratings_disabled boolean,
 	video_error_or_removed boolean,
-	description text
+	description text,
+	comments text[] DEFAULT ARRAY[]::text[]
 );
 
 \copy cavideos(video_id,trending_date,title,channel_title,category_id,publish_time,tags,views,likes,dislikes,comment_count,thumbnail_link,comments_disabled,ratings_disabled,video_error_or_removed,description) from './data/CAvideos.csv' DELIMITER ',' CSV HEADER;

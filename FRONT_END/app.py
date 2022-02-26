@@ -40,9 +40,7 @@ def createTableforOnce():
     cur.close()
     conn.close()
 
-
-def returnOrderCountry(in_country,in_order):
-    global order
+def chooseCountry(in_country):
     global country
 
     if in_country=="Canada":
@@ -55,6 +53,15 @@ def returnOrderCountry(in_country,in_order):
         country = "in"
     elif in_country=="USA":
         country = "us"
+
+    return country
+
+
+def returnOrderCountry(in_country,in_order):
+    global order
+    global country
+
+    country = chooseCountry(in_country)
 
     if order[-1]!=',':
         order += ','
@@ -192,7 +199,8 @@ def query():
     results = cur.fetchall()
 
     if len(results)==0:
-        cur.execute(f"INSERT INTO history VALUES('{curr_user}','{temp_videoId}','{channel_title}',0,FALSE,FALSE) ON CONFLICT DO NOTHING")
+        empty_array = "{''}"
+        cur.execute(f"INSERT INTO history VALUES('{curr_user}','{temp_videoId}','{channel_title}',0,FALSE,FALSE,ARRAY[]::text[]) ON CONFLICT DO NOTHING")
         results = [(False,False)]
 
     #app.logger.info("\n")
@@ -228,6 +236,9 @@ def query():
     elif action=='Comment' and comment!=None:
         cur.execute("UPDATE history SET comments = '"+comment+"'::text || comments WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
         cur.execute('UPDATE '+country+suffix+' SET comment_count = comment_count + 1 WHERE video_id LIKE '+videoId+';')
+
+        new_comment = "@" + curr_user + ": "+comment 
+        cur.execute('UPDATE '+country+suffix+' SET comments = \''+new_comment+'\'::text || comments WHERE video_id LIKE '+videoId+';')
         #app.logger.info(action)
     
     #app.logger.info("\nComment: "+comment)    
@@ -273,10 +284,13 @@ def login():
             account_message = "Account successfully switched to : " + in_user
             curr_user = in_user
 
+    in_country = request.args.get("country")
+    country = chooseCountry(in_country)
+
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute('SELECT '+ gen_attr + ' FROM ' + country+suffix+' WHERE channel_title LIKE \''+curr_user+'\' ORDER BY publish_time DESC;')
+    cur.execute('SELECT '+ gen_attr + ', comments FROM ' + country+suffix+' WHERE channel_title LIKE \''+curr_user+'\' ORDER BY publish_time DESC;')
     videos = cur.fetchall()
     cur.close()
     conn.close()
@@ -331,7 +345,7 @@ def history():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute(f"SELECT history.video_id,title,{country+suffix}.channel_title,{small_attr},watched,liked,disliked,comments FROM history,{country+suffix} WHERE (history.video_id LIKE {country+suffix}.video_id AND history.curr_user LIKE '{curr_user}') ORDER BY watched,publish_time DESC;")
+    cur.execute(f"SELECT history.video_id,title,{country+suffix}.channel_title,{small_attr},watched,liked,disliked,history.comments FROM history,{country+suffix} WHERE (history.video_id LIKE {country+suffix}.video_id AND history.curr_user LIKE '{curr_user}') ORDER BY watched,publish_time DESC;")
     videos = cur.fetchall()
 
     #app.logger.info(videos)
