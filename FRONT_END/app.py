@@ -34,7 +34,7 @@ def createTableforOnce():
     conn = get_db_connection()
     cur = conn.cursor()
     subquery = "((SELECT DISTINCT ON(channel_title)* FROM cavideos) UNION (SELECT DISTINCT ON(channel_title) * FROM frvideos) UNION (SELECT DISTINCT ON(channel_title)* FROM invideos) UNION (SELECT DISTINCT ON(channel_title)* FROM devideos) UNION (SELECT DISTINCT ON(channel_title)* FROM usvideos))"
-    cur.execute("CREATE TABLE IF NOT EXISTS history AS (SELECT DISTINCT ON (channel_title) channel_title as curr_user,video_id,channel_title,1 as watched,TRUE as liked,FALSE as disliked,ARRAY[]::text[] as comments FROM "+subquery+" AS TEMP);")
+    cur.execute("CREATE TABLE IF NOT EXISTS history AS (SELECT DISTINCT ON (channel_title) channel_title as curr_user,video_id,channel_title,1 as watched,TRUE as liked,FALSE as disliked,ARRAY[]::text[] as comments,publish_time as times_stamp FROM "+subquery+" AS TEMP);")
 
     conn.commit()
     cur.close()
@@ -200,7 +200,7 @@ def query():
 
     if len(results)==0:
         empty_array = "{''}"
-        cur.execute(f"INSERT INTO history VALUES('{curr_user}','{temp_videoId}','{channel_title}',0,FALSE,FALSE,ARRAY[]::text[]) ON CONFLICT DO NOTHING")
+        cur.execute(f"INSERT INTO history VALUES('{curr_user}','{temp_videoId}','{channel_title}',0,FALSE,FALSE,ARRAY[]::text[],'{str(datetime.datetime.now())}') ON CONFLICT DO NOTHING")
         results = [(False,False)]
 
     #app.logger.info("\n")
@@ -239,15 +239,18 @@ def query():
 
         new_comment = "@" + curr_user + ": "+comment 
         cur.execute('UPDATE '+country+suffix+' SET comments = \''+new_comment+'\'::text || comments WHERE video_id LIKE '+videoId+';')
-        #app.logger.info(action)
+        
+        cur.execute("UPDATE history SET times_stamp = '"+str(datetime.datetime.now()) + "' WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
     
     #app.logger.info("\nComment: "+comment)    
 
     if update!=0:
         cur.execute('UPDATE '+country+suffix+' SET '+action+'='+action+'+ '+str(update)+' WHERE video_id LIKE '+videoId+';')
-    
-    cur.execute("SELECT * FROM history WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
-    results = cur.fetchall()
+        cur.execute("UPDATE history SET times_stamp = '"+str(datetime.datetime.now()) + "' WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
+
+
+    #cur.execute("SELECT * FROM history WHERE curr_user LIKE \'%"+curr_user+"%\' AND video_id LIKE '"+temp_videoId+"';")
+    #results = cur.fetchall()
     #app.logger.info("\n")
     #app.logger.info(results)
     #app.logger.info("\n")
@@ -345,7 +348,7 @@ def history():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    cur.execute(f"SELECT history.video_id,title,{country+suffix}.channel_title,{small_attr},watched,liked,disliked,history.comments FROM history,{country+suffix} WHERE (history.video_id LIKE {country+suffix}.video_id AND history.curr_user LIKE '{curr_user}') ORDER BY watched,publish_time DESC;")
+    cur.execute(f"SELECT history.video_id,title,{country+suffix}.channel_title,{small_attr},watched,liked,disliked,history.comments FROM history,{country+suffix} WHERE (history.video_id LIKE {country+suffix}.video_id AND history.curr_user LIKE '{curr_user}') ORDER BY history.times_stamp DESC,publish_time DESC;")
     videos = cur.fetchall()
 
     #app.logger.info(videos)
@@ -370,7 +373,7 @@ def mypage():
                     WHERE (depth<{recommend_depth} AND temp.channel_title = history.curr_user)) \
                 SELECT DISTINCT video_id,title,somevideos.channel_title,{small_attr} FROM temp,{country+suffix} as somevideos \
                 WHERE (temp.curr_user LIKE '%{curr_user}%') AND (temp.channel_title = somevideos.channel_title) \
-                AND (somevideos.video_id NOT IN (SELECT video_id FROM history as h1 WHERE (h1.channel_title LIKE '%{curr_user}%'))) \
+                AND (somevideos.video_id NOT IN (SELECT video_id FROM history as h1 WHERE (h1.curr_user LIKE '%{curr_user}%'))) \
                 ORDER BY publish_time DESC,views DESC,likes DESC LIMIT 100;"
 
     cur.execute(subquery)
