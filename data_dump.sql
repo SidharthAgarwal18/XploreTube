@@ -163,3 +163,4 @@ CREATE INDEX de_index ON devideos(video_id);
 CREATE INDEX fr_index ON frvideos(video_id);
 CREATE INDEX in_index ON invideos(video_id);
 CREATE INDEX us_index ON usvideos(video_id);
+
