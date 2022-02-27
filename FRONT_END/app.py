@@ -24,8 +24,8 @@ small_attr = 'publish_time,description,views,likes,dislikes,tags'
 curr_user = "guest"
 
 def get_db_connection():
-    #conn = psycopg2.connect(host='10.17.50.36', database='group_23', user='group_23',password='RN1f78hxRg0Ey')
-    conn = psycopg2.connect(host='localhost',database='group_23',user='postgres',password='12345')
+    conn = psycopg2.connect(host='10.17.50.36', database='group_23', user='group_23',password='RN1f78hxRg0Ey',port = '5432')
+    #conn = psycopg2.connect(host='localhost',database='group_23',user='postgres',password='12345')
     return conn
 
 def createTableforOnce():
