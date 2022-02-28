@@ -9,3 +9,4 @@ Our new lovely video player
 ## Note
 * If you want to find the data dump, see the drive link in `data_dump.txt`
 * See for more details on results in the report `2019CS50661.pdf`
+* For video tutorial see the google drive link in `video.txt`
